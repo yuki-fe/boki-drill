@@ -12,8 +12,11 @@
 import json
 from pathlib import Path
 
+from terms_2kyu import TERMS_2KYU   # 2級の用語（と、2027年4月に3級に移った用語）
+
 # (分野, 小分類, 用語, 勘定の分類, 説明)
-# 分野: K=簿記の基本 A=現金・債権・債務 G=商品売買 F=固定資産・税金・純資産 P=収益と費用 C=決算
+# 分野: K=簿記の基本 A=現金・債権・債務 G=商品売買 F=固定資産・税金・純資産 P=収益と費用 C=決算（ここまで3級）
+#       N=2級 商業簿記 W=2級 工業簿記（terms_2kyu.py）
 # 勘定の分類: 資産 / 負債 / 純資産 / 収益 / 費用。勘定科目でない用語や、どれにも入らない勘定（評価勘定など）は ""
 TERMS = [
     # ---------- K: 簿記の基本 ----------
@@ -199,7 +202,7 @@ TERMS = [
 
 def main():
     out = []
-    for i, (field, sub, term, kind, desc) in enumerate(TERMS, 1):
+    for i, (field, sub, term, kind, desc) in enumerate(TERMS + TERMS_2KYU, 1):
         t = {"id": f"{i:04d}", "field": field, "sub": sub, "term": term, "desc": desc}
         if kind:
             t["kind"] = kind

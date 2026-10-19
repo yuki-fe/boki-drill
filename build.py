@@ -1,4 +1,4 @@
-"""簿記用語ドリル（簿記検定3級の用語）の静的サイトを docs/ に書き出す。
+"""簿記用語ドリル（簿記検定3級・2級の用語）の静的サイトを docs/ に書き出す。
 
 使い方:  python build.py
 入力:    config.json（サイトの設定）、data/terms.json（用語。data/make_terms.py が作る）、static/（CSS・JS）
@@ -16,11 +16,14 @@ from urllib.parse import urlparse
 
 ROOT = Path(__file__).parent
 OUT = ROOT / "docs"
-FIELDS = {"K": "簿記の基本", "A": "現金・債権・債務", "G": "商品売買", "F": "固定資産・税金・純資産", "P": "収益と費用", "C": "決算"}
+FIELDS = {"K": "簿記の基本", "A": "現金・債権・債務", "G": "商品売買", "F": "固定資産・税金・純資産", "P": "収益と費用", "C": "決算",
+          "N": "2級 商業簿記", "W": "2級 工業簿記"}
+LEVEL2 = ("N", "W")   # 2級の分野
+level = lambda t: "2級" if t["field"] in LEVEL2 else "3級"
 KINDS = ["資産", "負債", "純資産", "収益", "費用"]
 KANA = ["ア", "イ", "ウ", "エ"]
-# ミニテストの1回分の問題数（6つの分野から。用語の数に合わせた）
-TEST_COUNTS = {"K": 3, "A": 5, "G": 3, "F": 3, "P": 3, "C": 3}
+# ミニテストの1回分の問題数（3級の6つの分野と、2級の2つの分野から。用語の数に合わせた）
+TEST_COUNTS = {"K": 2, "A": 3, "G": 2, "F": 2, "P": 2, "C": 2, "N": 4, "W": 3}
 
 config = json.loads((ROOT / "config.json").read_text(encoding="utf-8"))
 terms = json.loads((ROOT / "data" / "terms.json").read_text(encoding="utf-8"))
@@ -179,7 +182,7 @@ def build_home():
   <ul>{items}</ul>"""
     body = f"""
 <div class="home-features">
-  <a class="home-feature" href="test.html"><span class="tag">ミニテスト</span><b>6つの分野から{n_test}問。分野ごとの正答率がわかる</b><span class="go">挑戦する →</span></a>
+  <a class="home-feature" href="test.html"><span class="tag">ミニテスト</span><b>3級・2級の8つの分野から{n_test}問。分野ごとの正答率がわかる</b><span class="go">挑戦する →</span></a>
   <a class="home-feature" href="kamoku.html"><span class="tag">勘定科目</span><b>資産・負債・純資産・収益・費用のどれ？{len(KAMOKU)}科目の分類クイズ</b><span class="go">覚える →</span></a>
 </div>
 <div class="app">
@@ -202,19 +205,19 @@ def build_home():
 
 <section class="prose home-intro">
   <h1>{escape(SITE)}<small>{escape(config["tagline"])}</small></h1>
-  <p>簿記検定3級に出てくる勘定科目と用語を、{len(terms)}語収録しています。簿記の基本から、現金・預金、商品の売買、固定資産、税金、決算まで、はじめて簿記を学ぶ人にも分かるように、やさしい言葉で説明しています。登録は不要で、スマホでもパソコンでも無料で使えます。</p>
+  <p>簿記検定3級・2級に出てくる勘定科目と用語を、{len(terms)}語収録しています。3級の簿記の基本から、現金・預金、商品の売買、固定資産、税金、決算まで。2級の有価証券・収益認識・リース・税効果会計・連結会計と、工業簿記（原価計算）まで。はじめて簿記を学ぶ人にも分かるように、やさしい言葉で説明しています。登録は不要で、スマホでもパソコンでも無料で使えます。</p>
   <h2>学び方</h2>
   <dl class="howto">
     <dt>カード</dt><dd>意味を読んで用語を思い出し、裏返して確かめます。「用語 → 意味」の向きにも切り替えられます。</dd>
     <dt>4択クイズ</dt><dd>ア〜エの選択肢から答えを選びます。同じ分野の、まぎらわしい用語がひっかけとして並びます。</dd>
     <dt>書いて答える</dt><dd>説明を読んで、用語を自分で入力します。「法人税、住民税及び事業税（法人税等）」なら「法人税等」でも正解になります。</dd>
     <dt>復習</dt><dd>「まだ」を押した用語や、クイズで間違えた用語だけを集めて、学習し直せます。</dd>
-    <dt>ミニテスト</dt><dd>6つの分野から{n_test}問を出します。分野ごとの正答率がわかります。</dd>
+    <dt>ミニテスト</dt><dd>3級・2級の8つの分野から{n_test}問を出します。分野ごとの正答率がわかります。</dd>
     <dt>勘定科目の分類</dt><dd>勘定科目が資産・負債・純資産・収益・費用のどれに入るか、増えたら借方か貸方かを覚えます。</dd>
   </dl>
   <h2>試験の範囲</h2>
-  <p>3級の試験の範囲は、実施団体の「出題区分表」で決められていて、<b>簿記の基本原理</b>、<b>諸取引の処理</b>、<b>決算</b>などからなります。このサイトでは、これを6つの分野に分けています。試験は60分で、70%以上の得点で合格です。テストセンターで受けるネット試験と、決まった日に受ける統一試験があります。</p>
-  <p><b>2027年4月からの試験では</b>、紙の手形・小切手の廃止にあわせて出題区分表が改定され、「手形」が3級の範囲から外れます。このサイトは2027年4月からの範囲にもとづいています。2027年3月までに受ける人のために、手形の用語も「手形（2027年3月まで）」にまとめて残しています。</p>
+  <p>試験の範囲は、実施団体の「出題区分表」で級ごとに決められています。このサイトでは、3級を6つの分野、2級を「2級 商業簿記」と「2級 工業簿記」の2つの分野に分けています。3級は60分で、2級は90分です。どちらも70%以上の得点で合格です。テストセンターで受けるネット試験と、決まった日に受ける統一試験があります。</p>
+  <p><b>2027年4月からの試験では</b>、紙の手形・小切手の廃止と、新しいリースの会計基準にあわせて出題区分表が改定されます。「手形」が範囲から外れ、有形固定資産の除却・定率法などが2級から3級に移ります。2級のリースは「使用権資産」「リース負債」を使う形になります。このサイトは2027年4月からの範囲にもとづいています。2027年3月までに受ける人のために、手形の用語も「手形（2027年3月まで）」にまとめて残しています。</p>
   <ul class="field-list">{field_links}</ul>
   <p>すべての用語は<a href="terms/index.html">用語一覧</a>から、1語ずつ解説ページで読めます。</p>
   {sisters}
@@ -291,11 +294,11 @@ def build_term(t, prev, nxt):
     url = f"{BASE}/terms/{t['id']}.html"
     ld = [
         {"@context": "https://schema.org", "@type": "DefinedTerm", "name": t["term"], "description": t["desc"], "url": url,
-         "inDefinedTermSet": {"@type": "DefinedTermSet", "name": f"{SITE} 簿記3級 用語集", "url": f"{BASE}/terms/index.html"}},
+         "inDefinedTermSet": {"@type": "DefinedTermSet", "name": f"{SITE} 簿記3級・2級 用語集", "url": f"{BASE}/terms/index.html"}},
         breadcrumb_ld([("ホーム", BASE + "/"), (field, f"{BASE}/terms/index.html#{t['field']}"), (t["term"], url)]),
     ]
     short = t["desc"] if len(t["desc"]) <= 100 else t["desc"][:99] + "…"
-    page(f"terms/{t['id']}.html", f"{t['term']}とは？意味と覚え方｜簿記3級の用語｜{SITE}",
+    page(f"terms/{t['id']}.html", f"{t['term']}とは？意味と覚え方｜簿記{level(t)}の用語｜{SITE}",
          f"{t['term']}（{field}・{t['sub']}）: {short}", body, "../", "", ld, '<script src="../assets/term.js"></script>')
 
 
@@ -314,15 +317,15 @@ def build_index():
     body = f"""
 <main class="prose wide">
   {crumbs("../", ("用語一覧", None))}
-  <h1>簿記3級の用語一覧<small>{len(terms)}語</small></h1>
-  <p>簿記3級の勘定科目と用語を、分野ごとに並べています。用語名から解説ページに進めます。</p>
+  <h1>簿記3級・2級の用語一覧<small>{len(terms)}語</small></h1>
+  <p>簿記3級・2級の勘定科目と用語を、分野ごとに並べています。2級の分野は「2級 商業簿記」「2級 工業簿記」です。用語名から解説ページに進めます。</p>
   <ul class="field-list">{''.join(toc)}</ul>
   {pr_box()}
   {''.join(sections)}
 </main>
 """
-    page("terms/index.html", f"簿記3級の用語一覧（{len(terms)}語）｜{SITE}",
-         f"簿記3級の勘定科目と用語{len(terms)}語を、分野ごとに一覧にしました。各用語の意味を、やさしい言葉で確認できます。",
+    page("terms/index.html", f"簿記3級・2級の用語一覧（{len(terms)}語）｜{SITE}",
+         f"簿記3級・2級の勘定科目と用語{len(terms)}語を、分野ごとに一覧にしました。各用語の意味を、やさしい言葉で確認できます。",
          body, "../", "", [breadcrumb_ld([("ホーム", BASE + "/"), ("用語一覧", f"{BASE}/terms/index.html")])])
 
 
@@ -332,7 +335,7 @@ def build_test():
     body = f"""
 <main class="prose wide drill-page">
   {crumbs("", ("ミニテスト", None))}
-  <h1>分野別ミニテスト<small>6つの分野から{n}問。分野ごとの正答率がわかる</small></h1>
+  <h1>分野別ミニテスト<small>3級・2級の8つの分野から{n}問。分野ごとの正答率がわかる</small></h1>
   <div id="drill" data-drill="test"><noscript><p class="empty">ミニテストを使うには JavaScript を有効にしてください。</p></noscript></div>
   <section>
     <h2>ミニテストについて</h2>
@@ -346,8 +349,8 @@ def build_test():
   </section>
 </main>
 """
-    page("test.html", f"簿記3級 分野別ミニテスト（{n}問）｜{SITE}",
-         f"簿記3級の6つの分野から{n}問の用語ミニテスト。分野ごとの正答率がわかり、苦手な分野を見つけられます。無料・登録不要。",
+    page("test.html", f"簿記3級・2級 分野別ミニテスト（{n}問）｜{SITE}",
+         f"簿記3級・2級の8つの分野から{n}問の用語ミニテスト。分野ごとの正答率がわかり、苦手な分野を見つけられます。無料・登録不要。",
          body, "", "", scripts='<script src="assets/terms.js"></script>\n<script src="assets/drill.js"></script>')
 
 
@@ -380,7 +383,7 @@ def build_kamoku():
 </main>
 """
     page("kamoku.html", f"勘定科目の分類クイズと一覧（{len(KAMOKU)}科目）｜{SITE}",
-         f"簿記3級の勘定科目{len(KAMOKU)}個が、資産・負債・純資産・収益・費用のどれに入るかを覚えるクイズと早見表。増えたら借方か貸方かも確認できます。無料・登録不要。",
+         f"簿記3級・2級の勘定科目{len(KAMOKU)}個が、資産・負債・純資産・収益・費用のどれに入るかを覚えるクイズと早見表。増えたら借方か貸方かも確認できます。無料・登録不要。",
          body, "", "", scripts='<script src="assets/terms.js"></script>\n<script src="assets/drill.js"></script>')
 
 
@@ -401,9 +404,9 @@ def build_about():
 <main class="prose">
   <h1>このサイトについて</h1>
   <h2>サイトの目的</h2>
-  <p>{escape(SITE)}は、簿記検定3級を受ける人が、すきま時間に勘定科目と用語を覚えられるように作った無料の学習サイトです。はじめて簿記を学ぶ人にも分かるように、やさしい言葉で説明することを心がけています。</p>
+  <p>{escape(SITE)}は、簿記検定3級・2級を受ける人が、すきま時間に勘定科目と用語を覚えられるように作った無料の学習サイトです。はじめて簿記を学ぶ人にも分かるように、やさしい言葉で説明することを心がけています。</p>
   <h2>用語の説明について</h2>
-  <p>用語の説明は、運営者がAIの支援を受けて作成し、内容を確認したうえで掲載しています。収録する用語は、検定の実施団体が公開している出題区分表と勘定科目表（2027年4月1日施行の版）の3級の範囲をもとに選んでいます。会計の基準や税金の決まりは変わることがあるので、最新の情報は、実施団体の発表で確認してください。誤りに気づいた場合は、下記のお問い合わせ先から教えていただけると助かります。</p>
+  <p>用語の説明は、運営者がAIの支援を受けて作成し、内容を確認したうえで掲載しています。収録する用語は、検定の実施団体が公開している出題区分表と勘定科目表（2027年4月1日施行の版）の3級・2級の範囲と、工業簿記・原価計算の出題区分表の2級の範囲をもとに選んでいます。会計の基準や税金の決まりは変わることがあるので、最新の情報は、実施団体の発表で確認してください。誤りに気づいた場合は、下記のお問い合わせ先から教えていただけると助かります。</p>
   <h2>運営者情報</h2>
   <table class="info">
     <tr><th>サイト名</th><td>{escape(SITE)}</td></tr>
