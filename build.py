@@ -83,6 +83,37 @@ def head_extras():
 SITEMAP = []  # page() で書き出したページの URL（sitemap.xml に載せる）
 
 
+# ---------- レイアウト（FE用語ドリルと同じ形。見た目は static/assets/layout.css） ----------
+NAV = [('index.html', '用語ドリル'), ('test.html', 'ミニテスト'), ('kamoku.html', '勘定科目'), ('terms/index.html', '用語一覧'), ('about.html', 'このサイトについて')]
+
+
+def nav_links(path, rel):
+    """今いる場所のリンクに aria-current を付ける（用語ページなら「用語一覧」）"""
+    def current(href):
+        return path == href or (href == "terms/index.html" and path.startswith("terms/"))
+    cur = ' aria-current="page"'
+    return "".join(f'<a href="{rel}{h}"{cur if current(h) else ""}>{label}</a>' for h, label in NAV)
+
+
+# 線のアイコン（Lucide の形をもとに、そのまま SVG で入れる）
+ICONS = {
+    "cards": '<rect x="3" y="6" width="14" height="14" rx="2"/><path d="M7 2h12a2 2 0 0 1 2 2v12"/>',
+    "target": '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/>',
+    "type": '<path d="M4 7V5h16v2"/><path d="M9 20h6"/><path d="M12 5v15"/>',
+    "layers": '<path d="m12 3 9 5-9 5-9-5z"/><path d="m3 13 9 5 9-5"/>',
+    "list": '<path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/>',
+    "pencil": '<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/>',
+}
+
+
+def icon(name):
+    return f'<svg class="ico" viewBox="0 0 24 24" aria-hidden="true">{ICONS[name]}</svg>'
+
+
+# 「カードで練習する」など、学び方つきのリンク（#card）から来たときは、学習の欄まで送る（app.js が # を書き換える前に読む）
+JUMP = '<script>if (/^#(card|quiz|type|review|list)$/.test(location.hash)) addEventListener("load", () => document.getElementById("study").scrollIntoView());</script>\n'
+
+
 def page(path, title, desc, body, rel, body_class="", jsonld=None, scripts="", index=True):
     """path は docs/ からの相対パス。rel はそのページからサイトのルートへの相対パス（"" / "../"）。"""
     url = BASE + "/" + ("" if path == "index.html" else path)
@@ -107,8 +138,9 @@ def page(path, title, desc, body, rel, body_class="", jsonld=None, scripts="", i
 <meta name="twitter:card" content="summary">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@400;500;700&family=JetBrains+Mono:wght@500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&family=Zen+Maru+Gothic:wght@400;500;700&family=JetBrains+Mono:wght@500&display=swap">
 <link rel="stylesheet" href="{rel}assets/style.css">
+<link rel="stylesheet" href="{rel}assets/layout.css">
 <link rel="icon" href="{rel}favicon.ico" sizes="48x48">
 <link rel="icon" href="{rel}favicon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="{rel}apple-touch-icon.png">
@@ -117,16 +149,16 @@ def page(path, title, desc, body, rel, body_class="", jsonld=None, scripts="", i
 {ld}
 </head>
 <body class="{body_class}" data-root="{rel}">
+<a class="skip" href="#content">本文へ移動</a>
 <header class="site-head">
-  <a class="brand" href="{rel}index.html">{escape(SITE)}</a>
-  <nav class="site-nav" aria-label="サイト内">
-    <a href="{rel}index.html">用語ドリル</a>
-    <a href="{rel}test.html">ミニテスト</a>
-    <a href="{rel}kamoku.html">勘定科目</a>
-    <a href="{rel}terms/index.html">用語一覧</a>
-    <a href="{rel}about.html">このサイトについて</a>
-  </nav>
+  <div class="site-head-in">
+    <a class="brand" href="{rel}index.html"><img src="{rel}favicon.svg" alt="" width="28" height="28">{escape(SITE)}</a>
+    <nav class="site-nav" aria-label="サイト内">
+      {nav_links(path, rel)}
+    </nav>
+  </div>
 </header>
+<div id="content"></div>
 {body}
 <footer class="site-foot">
   <nav aria-label="フッター">
@@ -181,30 +213,47 @@ def build_home():
   <p>同じ運営者が、IT の資格の学習サイトをほかにも作っています。</p>
   <ul>{items}</ul>"""
     body = f"""
-<div class="home-features">
-  <a class="home-feature" href="test.html"><span class="tag">ミニテスト</span><b>3級・2級の8つの分野から{n_test}問。分野ごとの正答率がわかる</b><span class="go">挑戦する →</span></a>
-  <a class="home-feature" href="kamoku.html"><span class="tag">勘定科目</span><b>資産・負債・純資産・収益・費用のどれ？{len(KAMOKU)}科目の分類クイズ</b><span class="go">覚える →</span></a>
-</div>
-<div class="app">
-  <aside class="side">
-    <div>
-      <p class="label">学び方</p>
-      <nav class="modes" role="tablist" id="modes" aria-label="学び方"></nav>
+<section class="hero" aria-labelledby="hero-h">
+  <div class="hero-text">
+    <p class="hero-eyebrow">簿記検定3級・2級の対策・無料</p>
+    <h1 id="hero-h"><span>簿記の用語を、</span><span>すきま時間に。</span><br><span>勘定科目の分類も、</span><span>クイズで覚える。</span></h1>
+    <p class="hero-lead">3級・2級（商業簿記・工業簿記）の勘定科目と用語{len(terms)}語を、単語帳とクイズで覚えられます。2027年4月からの出題範囲に対応しています。登録は要りません。</p>
+    <div class="hero-cta">
+      <a class="btn primary" href="#study">用語を覚えはじめる</a>
+      <a class="btn" href="test.html">ミニテストに挑戦</a>
     </div>
-    <div>
-      <p class="label">分野と覚えた数</p>
-      <div class="fields" id="fields"></div>
-    </div>
+    <ul class="hero-stats" aria-label="収録の数">
+      <li><b class="mono">{len(terms)}</b><span>用語</span></li>
+      <li><b class="mono">{len(KAMOKU)}</b><span>勘定科目</span></li>
+      <li><b class="mono">{len(FIELDS)}</b><span>分野</span></li>
+    </ul>
+  </div>
+  <aside class="hero-progress" aria-labelledby="prog-h">
+    <h2 id="prog-h">あなたの進み具合</h2>
+    <p class="hero-progress-sub">分野を押すと、その分野だけで学習します</p>
+    <div class="fields" id="fields"></div>
+    <p class="save-note">進み具合はこのブラウザに保存されます。<button id="reset" type="button">リセット</button></p>
   </aside>
-  <main class="main">
+</section>
+
+<section class="study" id="study" aria-labelledby="study-h">
+  <div class="study-head">
+    <h2 id="study-h" class="sec-title">学習する</h2>
+    <nav class="modes" role="tablist" id="modes" aria-label="学び方"></nav>
+  </div>
+  <div class="study-body">
     <div class="toolbar" id="toolbar"></div>
     <section class="panel" id="panel"><noscript><p class="empty">この学習機能を使うには JavaScript を有効にしてください。<a href="terms/index.html">用語一覧</a>はそのまま読めます。</p></noscript></section>
-    <p class="save-note">進み具合はこのブラウザに保存されます。<button id="reset" type="button">進み具合をリセット</button></p>
-  </main>
-</div>
+  </div>
+</section>
+
+<section class="features" aria-labelledby="feat-h">
+  <h2 id="feat-h" class="sec-title">できること</h2>
+  <div class="feat-grid"><a class="feat" href="#study">{icon("cards")}<b>単語帳とクイズ</b><span>{len(terms)}語をカード・4択・書いて答えるで。間違えた用語だけを復習できます。</span><em>学習を始める →</em></a><a class="feat" href="test.html">{icon("target")}<b>ミニテスト</b><span>3級・2級の8つの分野から{n_test}問。分野ごとの正答率がわかる。</span><em>挑戦する →</em></a><a class="feat" href="kamoku.html">{icon("layers")}<b>勘定科目</b><span>資産・負債・純資産・収益・費用のどれ？{len(KAMOKU)}科目の分類クイズ。</span><em>覚える →</em></a><a class="feat" href="terms/index.html">{icon("list")}<b>用語一覧</b><span>分野・小分類ごとに全部の用語を一覧で。1語ずつ解説ページがあります。</span><em>一覧を見る →</em></a></div>
+</section>
 
 <section class="prose home-intro">
-  <h1>{escape(SITE)}<small>{escape(config["tagline"])}</small></h1>
+  <h2 class="intro-title">{escape(SITE)}について<small>{escape(config["tagline"])}</small></h2>
   <p>簿記検定3級・2級に出てくる勘定科目と用語を、{len(terms)}語収録しています。3級の簿記の基本から、現金・預金、商品の売買、固定資産、税金、決算まで。2級の有価証券・収益認識・リース・税効果会計・連結会計と、工業簿記（原価計算）まで。はじめて簿記を学ぶ人にも分かるように、やさしい言葉で説明しています。登録は不要で、スマホでもパソコンでも無料で使えます。</p>
   <h2>学び方</h2>
   <dl class="howto">
@@ -226,7 +275,7 @@ def build_home():
 """
     ld = [{"@context": "https://schema.org", "@type": "WebSite", "name": SITE, "url": BASE + "/", "description": config["description"]}]
     page("index.html", f"{SITE}｜{config['tagline']}", config["description"], body, "", "home", ld,
-         '<script src="assets/terms.js"></script>\n<script src="assets/app.js"></script>')
+         JUMP + '<script src=\"assets/terms.js\"></script>\n<script src="assets/app.js"></script>')
 
 
 def related_terms(t, n=6):
@@ -272,24 +321,36 @@ def build_term(t, prev, nxt):
     abbr = f'<p class="abbr-full kind-full"><span>分類</span><span>{t["kind"]}の勘定（{side[t["kind"]]}）</span></p>' if t.get("kind") else ""
     abbr_cta = '<a class="btn" href="../kamoku.html">勘定科目の分類クイズ</a>' if t.get("kind") else '<a class="btn" href="../index.html#type">書いて答える問題に挑戦</a>'
     body = f"""
-<main class="prose term-page">
+<div class="term-wrap">
   <nav class="crumbs" aria-label="パンくずリスト"><a href="../index.html">ホーム</a><span>›</span><a href="index.html#{t['field']}">{field}</a><span>›</span><a href="index.html#sub-{t['field']}-{escape(t['sub'])}">{escape(t['sub'])}</a></nav>
-  <p class="eyebrow">{field}・{escape(t['sub'])}</p>
-  <h1>{escape(t['term'])}</h1>
-  {abbr}
-  <p class="lead">{escape(t['desc'])}</p>
-  <div class="cta-row">
-    <a class="btn primary" href="../index.html#card">カードで練習する</a>
-    {abbr_cta}
+  <div class="term-grid">
+    <main class="prose term-page term-main">
+      <p class="eyebrow">{field}・{escape(t['sub'])}<span class="term-no mono">No.{int(t['id']):03d} / {len(terms)}</span></p>
+      <h1>{escape(t['term'])}</h1>
+      {abbr}
+      <p class="lead">{escape(t['desc'])}</p>
+      <div class="cta-row cta-mobile">
+        <a class="btn primary" href="../index.html#card">{icon("cards")}カードで練習</a>
+        {abbr_cta}
+      </div>
+      {mini_quiz(t, rel)}
+      {pr_box()}
+      {pager}
+    </main>
+    <aside class="term-side" aria-label="練習と関連する用語">
+      <section class="side-card">
+        <h2>この用語を練習する</h2>
+        <a class="btn primary" href="../index.html#card">{icon("cards")}カードで練習</a>
+        <a class="btn" href="../index.html#type">{icon("pencil")}書いて答える</a>
+        <a class="btn" href="../test.html">{icon("target")}ミニテストに挑戦</a>
+      </section>
+      <section class="side-card">
+        <h2>同じ分野の用語</h2>
+        <ul class="related">{related_html}</ul>
+      </section>
+    </aside>
   </div>
-  <section>
-    <h2>同じ分野の用語</h2>
-    <ul class="related">{related_html}</ul>
-  </section>
-  {mini_quiz(t, rel)}
-  {pr_box()}
-  {pager}
-</main>
+</div>
 """
     url = f"{BASE}/terms/{t['id']}.html"
     ld = [

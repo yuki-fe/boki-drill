@@ -14,8 +14,9 @@
 <meta name="twitter:card" content="summary">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@400;500;700&family=JetBrains+Mono:wght@500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&family=Zen+Maru+Gothic:wght@400;500;700&family=JetBrains+Mono:wght@500&display=swap">
 <link rel="stylesheet" href="assets/style.css">
+<link rel="stylesheet" href="assets/layout.css">
 <link rel="icon" href="favicon.ico" sizes="48x48">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -24,41 +25,58 @@
 <script type="application/ld+json">{"@context": "https://schema.org", "@type": "WebSite", "name": "簿記用語ドリル", "url": "https://boki.yogo-drill.com/", "description": "簿記検定3級・2級の勘定科目と用語（簿記の基本・現金と債権債務・商品売買・固定資産と税金・収益と費用・決算、2級の商業簿記と工業簿記）を、カード・4択クイズ・書いて答える問題・分野別ミニテスト・勘定科目の分類クイズで覚えられる無料の単語帳サイトです。"}</script>
 </head>
 <body class="home" data-root="">
+<a class="skip" href="#content">本文へ移動</a>
 <header class="site-head">
-  <a class="brand" href="index.html">簿記用語ドリル</a>
-  <nav class="site-nav" aria-label="サイト内">
-    <a href="index.html">用語ドリル</a>
-    <a href="test.html">ミニテスト</a>
-    <a href="kamoku.html">勘定科目</a>
-    <a href="terms/index.html">用語一覧</a>
-    <a href="about.html">このサイトについて</a>
-  </nav>
+  <div class="site-head-in">
+    <a class="brand" href="index.html"><img src="favicon.svg" alt="" width="28" height="28">簿記用語ドリル</a>
+    <nav class="site-nav" aria-label="サイト内">
+      <a href="index.html" aria-current="page">用語ドリル</a><a href="test.html">ミニテスト</a><a href="kamoku.html">勘定科目</a><a href="terms/index.html">用語一覧</a><a href="about.html">このサイトについて</a>
+    </nav>
+  </div>
 </header>
+<div id="content"></div>
 
-<div class="home-features">
-  <a class="home-feature" href="test.html"><span class="tag">ミニテスト</span><b>3級・2級の8つの分野から20問。分野ごとの正答率がわかる</b><span class="go">挑戦する →</span></a>
-  <a class="home-feature" href="kamoku.html"><span class="tag">勘定科目</span><b>資産・負債・純資産・収益・費用のどれ？117科目の分類クイズ</b><span class="go">覚える →</span></a>
-</div>
-<div class="app">
-  <aside class="side">
-    <div>
-      <p class="label">学び方</p>
-      <nav class="modes" role="tablist" id="modes" aria-label="学び方"></nav>
+<section class="hero" aria-labelledby="hero-h">
+  <div class="hero-text">
+    <p class="hero-eyebrow">簿記検定3級・2級の対策・無料</p>
+    <h1 id="hero-h"><span>簿記の用語を、</span><span>すきま時間に。</span><br><span>勘定科目の分類も、</span><span>クイズで覚える。</span></h1>
+    <p class="hero-lead">3級・2級（商業簿記・工業簿記）の勘定科目と用語300語を、単語帳とクイズで覚えられます。2027年4月からの出題範囲に対応しています。登録は要りません。</p>
+    <div class="hero-cta">
+      <a class="btn primary" href="#study">用語を覚えはじめる</a>
+      <a class="btn" href="test.html">ミニテストに挑戦</a>
     </div>
-    <div>
-      <p class="label">分野と覚えた数</p>
-      <div class="fields" id="fields"></div>
-    </div>
+    <ul class="hero-stats" aria-label="収録の数">
+      <li><b class="mono">300</b><span>用語</span></li>
+      <li><b class="mono">117</b><span>勘定科目</span></li>
+      <li><b class="mono">8</b><span>分野</span></li>
+    </ul>
+  </div>
+  <aside class="hero-progress" aria-labelledby="prog-h">
+    <h2 id="prog-h">あなたの進み具合</h2>
+    <p class="hero-progress-sub">分野を押すと、その分野だけで学習します</p>
+    <div class="fields" id="fields"></div>
+    <p class="save-note">進み具合はこのブラウザに保存されます。<button id="reset" type="button">リセット</button></p>
   </aside>
-  <main class="main">
+</section>
+
+<section class="study" id="study" aria-labelledby="study-h">
+  <div class="study-head">
+    <h2 id="study-h" class="sec-title">学習する</h2>
+    <nav class="modes" role="tablist" id="modes" aria-label="学び方"></nav>
+  </div>
+  <div class="study-body">
     <div class="toolbar" id="toolbar"></div>
     <section class="panel" id="panel"><noscript><p class="empty">この学習機能を使うには JavaScript を有効にしてください。<a href="terms/index.html">用語一覧</a>はそのまま読めます。</p></noscript></section>
-    <p class="save-note">進み具合はこのブラウザに保存されます。<button id="reset" type="button">進み具合をリセット</button></p>
-  </main>
-</div>
+  </div>
+</section>
+
+<section class="features" aria-labelledby="feat-h">
+  <h2 id="feat-h" class="sec-title">できること</h2>
+  <div class="feat-grid"><a class="feat" href="#study"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="6" width="14" height="14" rx="2"/><path d="M7 2h12a2 2 0 0 1 2 2v12"/></svg><b>単語帳とクイズ</b><span>300語をカード・4択・書いて答えるで。間違えた用語だけを復習できます。</span><em>学習を始める →</em></a><a class="feat" href="test.html"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/></svg><b>ミニテスト</b><span>3級・2級の8つの分野から20問。分野ごとの正答率がわかる。</span><em>挑戦する →</em></a><a class="feat" href="kamoku.html"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 9 5-9 5-9-5z"/><path d="m3 13 9 5 9-5"/></svg><b>勘定科目</b><span>資産・負債・純資産・収益・費用のどれ？117科目の分類クイズ。</span><em>覚える →</em></a><a class="feat" href="terms/index.html"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg><b>用語一覧</b><span>分野・小分類ごとに全部の用語を一覧で。1語ずつ解説ページがあります。</span><em>一覧を見る →</em></a></div>
+</section>
 
 <section class="prose home-intro">
-  <h1>簿記用語ドリル<small>簿記3級・2級の勘定科目と用語を無料で覚える単語帳（2027年4月からの範囲に対応）</small></h1>
+  <h2 class="intro-title">簿記用語ドリルについて<small>簿記3級・2級の勘定科目と用語を無料で覚える単語帳（2027年4月からの範囲に対応）</small></h2>
   <p>簿記検定3級・2級に出てくる勘定科目と用語を、300語収録しています。3級の簿記の基本から、現金・預金、商品の売買、固定資産、税金、決算まで。2級の有価証券・収益認識・リース・税効果会計・連結会計と、工業簿記（原価計算）まで。はじめて簿記を学ぶ人にも分かるように、やさしい言葉で説明しています。登録は不要で、スマホでもパソコンでも無料で使えます。</p>
   <h2>学び方</h2>
   <dl class="howto">
@@ -91,6 +109,7 @@
   <p>簿記検定（商工会議所簿記検定試験）は、日本商工会議所と各地の商工会議所が実施する検定です。当サイトは、検定の実施団体とは関係のない個人の学習サイトです。</p>
   <p>© 2026 Yuki-fe</p>
 </footer>
+<script>if (/^#(card|quiz|type|review|list)$/.test(location.hash)) addEventListener("load", () => document.getElementById("study").scrollIntoView());</script>
 <script src="assets/terms.js"></script>
 <script src="assets/app.js"></script>
 </body>
