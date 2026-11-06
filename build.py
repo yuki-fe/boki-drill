@@ -39,6 +39,12 @@ YOMI = json.loads((ROOT / "data" / "yomi.json").read_text(encoding="utf-8")) if 
 IMI = {k: v for k, v in json.loads((ROOT / "data" / "imi.json").read_text(encoding="utf-8")).items() if not k.startswith("_")} \
     if (ROOT / "data" / "imi.json").exists() else {}
 KAMOKU = [t for t in terms if t.get("kind")]
+# 用語ページの本文（覚え方・試験での出され方・似た用語との違い）。用語 id → {"oboe", "exam", "diff": [{"id", "text"}]}
+DETAIL = {k: v for k, v in json.loads((ROOT / "data" / "detail.json").read_text(encoding="utf-8")).items() if not k.startswith("_")} \
+    if (ROOT / "data" / "detail.json").exists() else {}
+# 似た用語を比べるページ（compare/<slug>.html）。slug は URL になるので公開後に変えない
+COMPARE = json.loads((ROOT / "data" / "compare.json").read_text(encoding="utf-8")) if (ROOT / "data" / "compare.json").exists() else []
+TERM_BY_ID = {t["id"]: t for t in terms}
 
 
 # ---------- 用語の文字列処理 ----------
@@ -278,7 +284,7 @@ def build_home():
   <p>試験の範囲は、実施団体の「出題区分表」で級ごとに決められています。このサイトでは、3級を6つの分野、2級を「2級 商業簿記」と「2級 工業簿記」の2つの分野に分けています。3級は60分で、2級は90分です。どちらも70%以上の得点で合格です。テストセンターで受けるネット試験と、決まった日に受ける統一試験があります。</p>
   <p><b>2027年4月からの試験では</b>、紙の手形・小切手の廃止と、新しいリースの会計基準にあわせて出題区分表が改定されます。「手形」が範囲から外れ、有形固定資産の除却・定率法などが2級から3級に移ります。2級のリースは「使用権資産」「リース負債」を使う形になります。このサイトは2027年4月からの範囲にもとづいています。2027年3月までに受ける人のために、手形の用語も「手形（2027年3月まで）」にまとめて残しています。</p>
   <ul class="field-list">{field_links}</ul>
-  <p>すべての用語は<a href="terms/index.html">用語一覧</a>から、1語ずつ解説ページで読めます。</p>
+  <p>すべての用語は<a href="terms/index.html">用語一覧</a>から、1語ずつ解説ページで読めます。前払費用と未払費用、売掛金と未収入金のようなまぎらわしい用語は、<a href="compare/index.html">似た用語の違い</a>で表にして比べられます。</p>
   {sisters}
   <p class="muted">このサイトは、実施団体が公開している出題区分表と勘定科目表（2027年4月1日施行の版）にもとづいています（2026年10月時点）。試験の日程・範囲・配点は変わることがあるので、受験の前に、実施団体のサイトで確認してください。</p>
 </section>
@@ -319,6 +325,90 @@ def mini_quiz(t, related):
   </section>"""
 
 
+def detail_sections(t, rel_terms=""):
+    """data/detail.json の本文（覚え方・試験での出され方・似た用語との違い）。rel_terms は用語ページへの相対パス。"""
+    d = DETAIL.get(t["id"])
+    if not d:
+        return ""
+    out = ""
+    if d.get("oboe"):
+        out += f'<section class="detail"><h2>覚え方</h2><p>{escape(d["oboe"])}</p></section>'
+    if d.get("exam"):
+        out += f'<section class="detail"><h2>試験での出され方</h2><p>{escape(d["exam"])}</p></section>'
+    if d.get("diff"):
+        items = "".join(f'<dt><a href="{rel_terms}{x["id"]}.html">{escape(TERM_BY_ID[x["id"]]["term"])}</a>との違い</dt><dd>{escape(x["text"])}</dd>'
+                        for x in d["diff"] if x["id"] in TERM_BY_ID)
+        out += f'<section class="detail"><h2>似た用語との違い</h2><dl class="diff-list">{items}</dl></section>'
+    return out
+
+
+def faq_html(items):
+    """よくある質問（本文の Q&A）。items は [(質問, 答えの HTML)]。"""
+    return ('<section class="faq"><h2>よくある質問</h2>'
+            + "".join(f'<details><summary>{escape(q)}</summary><div>{a}</div></details>' for q, a in items) + "</section>")
+
+
+def levels_label(ts):
+    """用語の級から「簿記3級」「簿記2級」「簿記3級・2級」を返す。"""
+    lv = {level(x) for x in ts}
+    return "簿記" + "・".join(x for x in ("3級", "2級") if x in lv)
+
+
+def build_compare():
+    """似た用語を比べるページ（compare/<slug>.html）と一覧。"""
+    if not COMPARE:
+        return
+    cards = "".join(f'<li><a href="{c["slug"]}.html">{escape(c["title"])}</a><p>{escape(c["summary"])}</p></li>' for c in COMPARE)
+    body = f"""
+<main class="prose wide">
+  {crumbs("../", ("似た用語の違い", None))}
+  <h1>似た用語の違い<small>簿記3級・2級でまぎらわしい用語 {len(COMPARE)}組</small></h1>
+  <p>簿記では、名前の似た勘定科目や、似た手続きの違いがよく問われます。2つ（3つ）の用語を表で並べて、どこが違うか・仕訳がどう変わるかを確かめましょう。</p>
+  <ul class="term-list">{cards}</ul>
+  <p><a href="../terms/index.html">用語一覧（{len(terms)}語）へ</a></p>
+</main>
+"""
+    page("compare/index.html", f"似た用語の違い（{len(COMPARE)}組）｜簿記3級・2級｜{SITE}",
+         f"簿記3級・2級でまぎらわしい用語{len(COMPARE)}組（前払費用と未払費用、売掛金と未収入金、定額法と定率法など）の違いを、表と仕訳の例で比べてまとめました。",
+         body, "../", "", [breadcrumb_ld([("ホーム", BASE + "/"), ("似た用語の違い", f"{BASE}/compare/index.html")])])
+    for c in COMPARE:
+        ts = [TERM_BY_ID[i] for i in c["terms"]]
+        head, *rows = c["table"]
+        table = ('<div class="table-scroll"><table class="cmp-table"><thead><tr>' + "".join(f"<th scope=\"col\">{escape(h)}</th>" for h in head)
+                 + "</tr></thead><tbody>" + "".join("<tr>" + f'<th scope="row">{escape(r[0])}</th>' + "".join(f"<td>{escape(x)}</td>" for x in r[1:]) + "</tr>" for r in rows)
+                 + "</tbody></table></div>")
+        terms_html = "".join(f'<li><a href="../terms/{x["id"]}.html">{escape(x["term"])}</a><p>{escape(x["desc"])}</p></li>' for x in ts)
+        others = "".join(f'<li><a href="{o["slug"]}.html">{escape(o["title"])}</a></li>' for o in COMPARE if o is not c)
+        has_kind = any(x.get("kind") for x in ts)
+        body = f"""
+<main class="prose">
+  {crumbs("../", ("似た用語の違い", "index.html"), (c["title"], None))}
+  <p class="eyebrow">似た用語を比べる</p>
+  <h1>{escape(c["title"])}</h1>
+  <p class="lead">{escape(c["summary"])}</p>
+  <h2>表で比べる</h2>
+  {table}
+  <h2>見分けるポイント</h2>
+  <ul>{"".join(f"<li>{escape(p)}</li>" for p in c["points"])}</ul>
+  <h2>試験での出され方</h2>
+  <p>{escape(c["exam"])}</p>
+  <h2>それぞれの用語</h2>
+  <ul class="term-list">{terms_html}</ul>
+  <div class="cta-row">
+    <a class="btn primary" href="../index.html#quiz">{icon("cards")}4択クイズで確かめる</a>
+    {'<a class="btn" href="../kamoku.html">勘定科目の分類クイズ</a>' if has_kind else '<a class="btn" href="../index.html#card">カードで練習</a>'}
+  </div>
+  {pr_box()}
+  <h2>ほかの比べる用語</h2>
+  <ul class="b-links inline">{others}</ul>
+</main>
+"""
+        url = f"{BASE}/compare/{c['slug']}.html"
+        page(f"compare/{c['slug']}.html", f"{c['title']}を表で比較｜{levels_label(ts)}｜{SITE}",
+             (c["summary"] if len(c["summary"]) <= 120 else c["summary"][:119] + "…"), body, "../", "",
+             [breadcrumb_ld([("ホーム", BASE + "/"), ("似た用語の違い", f"{BASE}/compare/index.html"), (c["title"], url)])])
+
+
 def build_term(t, prev, nxt):
     field = FIELDS[t["field"]]
     rel = related_terms(t)
@@ -330,6 +420,11 @@ def build_term(t, prev, nxt):
     side = {"資産": "増えたら借方", "負債": "増えたら貸方", "純資産": "増えたら貸方", "収益": "発生したら貸方", "費用": "発生したら借方"}
     abbr = f'<p class="abbr-full kind-full"><span>分類</span><span>{t["kind"]}の勘定（{side[t["kind"]]}）</span></p>' if t.get("kind") else ""
     abbr_cta = '<a class="btn" href="../kamoku.html">勘定科目の分類クイズ</a>' if t.get("kind") else '<a class="btn" href="../index.html#type">書いて答える問題に挑戦</a>'
+    detail_html = detail_sections(t)
+    cmps = [c for c in COMPARE if t["id"] in c["terms"]]
+    cmp_html = ('<section class="side-card"><h2>比べて覚える</h2><ul class="b-links">'
+                + "".join(f'<li><a href="../compare/{c["slug"]}.html">{escape(c["title"])}</a></li>' for c in cmps)
+                + "</ul></section>") if cmps else ""
     body = f"""
 <div class="term-wrap">
   <nav class="crumbs" aria-label="パンくずリスト"><a href="../index.html">ホーム</a><span>›</span><a href="index.html#{t['field']}">{field}</a><span>›</span><a href="index.html#sub-{t['field']}-{escape(t['sub'])}">{escape(t['sub'])}</a></nav>
@@ -343,6 +438,7 @@ def build_term(t, prev, nxt):
         <a class="btn primary" href="../index.html#card">{icon("cards")}カードで練習</a>
         {abbr_cta}
       </div>
+      {detail_html}
       {mini_quiz(t, rel)}
       {pr_box()}
       {pager}
@@ -359,6 +455,7 @@ def build_term(t, prev, nxt):
         <h2>同じ分野の用語</h2>
         <ul class="related">{related_html}</ul>
       </section>
+      {cmp_html}
     </aside>
   </div>
 </div>
@@ -369,9 +466,14 @@ def build_term(t, prev, nxt):
          "inDefinedTermSet": {"@type": "DefinedTermSet", "name": f"{SITE} 簿記3級・2級 用語集", "url": f"{BASE}/terms/index.html"}},
         breadcrumb_ld([("ホーム", BASE + "/"), (field, f"{BASE}/terms/index.html#{t['field']}"), (t["term"], url)]),
     ]
-    short = t["desc"] if len(t["desc"]) <= 100 else t["desc"][:99] + "…"
-    page(f"terms/{t['id']}.html", f"{t['term']}とは？意味と覚え方｜簿記{level(t)}の用語｜{SITE}",
-         f"{t['term']}（{field}・{t['sub']}）: {short}", body, "../", "", ld, '<script src="../assets/term.js"></script>')
+    d = DETAIL.get(t["id"], {})
+    desc = f"{t['term']}（{field}・{t['sub']}）: {t['desc']}"
+    if d.get("oboe"):
+        desc += "【覚え方】" + d["oboe"]
+    desc = desc if len(desc) <= 120 else desc[:119] + "…"
+    title = f"{t['term']}とは？意味と覚え方" if d.get("oboe") else f"{t['term']}とは？意味をわかりやすく"
+    page(f"terms/{t['id']}.html", f"{title}｜簿記{level(t)}の用語｜{SITE}",
+         desc, body, "../", "", ld, '<script src="../assets/term.js"></script>')
 
 
 def build_index():
@@ -392,8 +494,16 @@ def build_index():
   <h1>簿記3級・2級の用語一覧<small>{len(terms)}語</small></h1>
   <p>簿記3級・2級の勘定科目と用語を、分野ごとに並べています。2級の分野は「2級 商業簿記」「2級 工業簿記」です。用語名から解説ページに進めます。</p>
   <ul class="field-list">{''.join(toc)}</ul>
+  {f'<p>まぎらわしい用語は<a href="../compare/index.html">似た用語の違い（{len(COMPARE)}組）</a>で、表で比べられます。</p>' if COMPARE else ''}
   {pr_box()}
   {''.join(sections)}
+  {faq_html([
+      ("3級と2級、どちらから覚えればいいですか？", "<p>まず3級から始めましょう。2級の商業簿記は、3級の仕訳や決算の知識があることを前提にしています。ホームの「学習する」で分野を選ぶと、3級の6つの分野や、2級の「2級 商業簿記」「2級 工業簿記」だけで練習できます。</p>"),
+      ("勘定科目が借方か貸方か、すぐに迷ってしまいます。", "<p>勘定科目を、資産・負債・純資産・収益・費用の5つのどれに入るかで覚えるのが近道です。資産と費用は増えたら（発生したら）借方、負債・純資産・収益は増えたら（発生したら）貸方です。<a href=\"../kamoku.html\">勘定科目の分類クイズ</a>で、分類をくり返し確かめましょう。</p>"),
+      ("似た用語の区別がつきません。", "<p>前払費用と未払費用、売掛金と未収入金のように、名前の似た勘定科目はよく問われます。<a href=\"../compare/index.html\">似た用語の違い</a>で、表と仕訳の例を並べて比べると、見分けるポイントがつかめます。用語ページの「似た用語との違い」もあわせて読んでください。</p>"),
+      ("このサイトだけで合格できますか？", "<p>このサイトは、勘定科目と用語を覚えることが中心です。試験では、仕訳や精算表・財務諸表を作るなど、手を動かして計算する問題が多く出ます。問題集や過去の問題の形の練習もあわせて行うことをおすすめします。</p>"),
+      ("2027年4月から試験の範囲が変わると聞きました。", "<p>2027年4月からの試験では、出題区分表が改定され、手形が範囲から外れたり、一部の内容が2級から3級に移ったりします。このサイトは2027年4月からの範囲にもとづいていますが、2027年3月までに受ける人のために手形の用語も残しています。受験の前に、実施団体のサイトで最新の範囲を確認してください。</p>"),
+  ])}
 </main>
 """
     page("terms/index.html", f"簿記3級・2級の用語一覧（{len(terms)}語）｜{SITE}",
@@ -653,6 +763,22 @@ def check():
             errors.append(f"{t['id']} {t['term']} の意味の要点の形か読みがおかしい: {m}")
     for k in set(IMI) - set(ids):
         warnings.append(f"data/imi.json の {k} は、用語にない id です")
+    # 用語ページの本文と、比べるページ
+    for k, d in DETAIL.items():
+        if k not in ids:
+            errors.append(f"data/detail.json の {k} は、用語にない id です")
+        for x in d.get("diff", []):
+            if x.get("id") not in ids or not x.get("text"):
+                errors.append(f"data/detail.json の {k} の diff がおかしい: {x}")
+    cslugs = [c["slug"] for c in COMPARE]
+    for c in COMPARE:
+        if cslugs.count(c["slug"]) > 1 or not re.fullmatch(r"[a-z0-9-]+", c["slug"]):
+            errors.append(f"data/compare.json の slug が重複しているか、使えない文字があります: {c['slug']}")
+        for i in c["terms"]:
+            if i not in ids:
+                errors.append(f"data/compare.json の {c['slug']}: 用語 id {i} がありません")
+        if any(len(r) != len(c["table"][0]) for r in c["table"]):
+            errors.append(f"data/compare.json の {c['slug']}: 表の列の数がそろっていません")
     if "YOUR-NAME" in BASE:
         warnings.append("config.json の base_url が仮の値のままです（公開するURLに変えてください）")
     if not config.get("operator"):
@@ -677,6 +803,7 @@ def main():
     build_index()
     for i, t in enumerate(terms):
         build_term(t, terms[i - 1] if i > 0 else None, terms[i + 1] if i + 1 < len(terms) else None)
+    build_compare()
     build_test()
     build_typing()
     build_kamoku()
