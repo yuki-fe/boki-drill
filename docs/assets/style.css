@@ -58,6 +58,17 @@ button:focus-visible, input:focus-visible, a:focus-visible, .card:focus-visible 
 .mode .count:empty { display: none; }
 .mode .nm-short { display: none; }
 .weak-tag { font-size: .68rem; font-weight: 700; color: var(--mark); background: var(--mark-soft); border-radius: 4px; padding: 0 6px; }
+.rev-plan { margin: 12px 0 16px; padding: 12px; border-radius: 10px; background: var(--bg); font-size: .9rem; }
+.rev-plan[hidden] { display: none; }
+.rev-now { display: flex; justify-content: space-between; align-items: center; width: 100%; min-height: 44px; padding: 6px 12px; border: 1px solid var(--mark); border-radius: 8px; background: var(--mark-soft); color: var(--mark); font: inherit; font-weight: 700; cursor: pointer; }
+.rev-now b { font-size: 1.15rem; }
+.rev-week { list-style: none; display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; margin: 6px 0 0; padding: 0; }
+.rev-week li { display: flex; flex-direction: column; align-items: center; min-width: 0; padding: 3px 0; border-radius: 4px; background: var(--paper); color: var(--muted); line-height: 1.3; }
+.rev-week li.on { color: var(--ink); background: var(--mark-soft); }
+.rev-week small { font-size: .62rem; white-space: nowrap; }
+.rev-week b { font-size: .85rem; }
+.next-review { margin: 10px 0 0; font-size: .86rem; font-weight: 700; color: var(--muted); }
+.next-tag { font-size: .68rem; font-weight: 700; color: var(--muted); background: var(--bg); border-radius: 4px; padding: 0 6px; }
 .fields { display: grid; grid-template-columns: 1fr; gap: 6px; }
 .frow { display: flex; flex-direction: column; gap: 4px; padding: 8px 10px; border: 1px solid transparent; border-radius: 8px; background: none; text-align: left; cursor: pointer; }
 .frow:hover { background: var(--paper); }

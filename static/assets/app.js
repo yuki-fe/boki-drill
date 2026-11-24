@@ -7,7 +7,7 @@
     { id: "card", name: "カード", cap: "めくって覚える", title: "カード", sub: "タップで裏返し、覚えたかどうかを仕分けます" },
     { id: "quiz", name: "4択", cap: "ア〜エから選ぶ", title: "4択クイズ", sub: "10問ずつ。覚えていない用語から出ます" },
     { id: "type", name: "書いて答える", short: "書く", cap: "意味から用語を入力", title: "書いて答える", sub: "説明を読んで用語を入力します。カタカナの用語はひらがなでも、かっこの中の別名でも答えられます" },
-    { id: "review", name: "復習", cap: "間違えた用語だけ", title: "復習", sub: "「まだ」を押した用語や間違えた用語を、まとめて学習します。正解すると復習リストから外れます" },
+    { id: "review", name: "今日の復習", short: "復習", cap: "復習の日が来た用語", title: "今日の復習", sub: "間違えた用語と、復習の日が来た用語が出ます。正解を重ねると、次の復習が1日後・2日後・約4日後・約7日後・約14日後と延びます" },
     { id: "list", name: "一覧", cap: "検索・チェック", title: "用語一覧", sub: "検索して、覚えた用語に印を付けられます" }
   ];
   const KINDS = [["card", "カード"], ["quiz", "4択"], ["type", "書いて答える"]];
@@ -17,6 +17,9 @@
   function store(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
   let known = load("boki-drill-v1", {});
   let weak = load("boki-drill-weak", {});
+  /* 日付での復習: 用語 → { s: 続けて正解した回数, d: 次に復習する日（YYYY-MM-DD） } */
+  let srs = load("boki-drill-srs", {});
+  const INTERVALS = [1, 2, 4, 7, 14];   // 続けて正解した回数ごとの、次の復習までの日数
   const prefs = Object.assign({ mode: "card", field: "all", cardDir: "d2t", quizDir: "d2t", reviewKind: "card" }, load("boki-drill-prefs", {}));
   const hashMode = location.hash.slice(1);
   if (MODES.some((m) => m.id === hashMode)) prefs.mode = hashMode;
@@ -26,16 +29,73 @@
   const savePrefs = () => store("boki-drill-prefs", prefs);
   const isKnown = (t) => !!known[t.term];
   const isWeak = (t) => !!weak[t.term];
-  function saveProgress() { store("boki-drill-v1", known); store("boki-drill-weak", weak); renderFields(); updateWeakCount(); }
-  /* 学習での答え: 正解・覚えた → 覚えた用語に、間違い・まだ → 復習リストに */
+  function saveProgress() { store("boki-drill-v1", known); store("boki-drill-weak", weak); store("boki-drill-srs", srs); renderFields(); updateWeakCount(); renderRevPlan(); }
+  /* 学習での答え: 正解・覚えた → 次の復習の日を先へ、間違い・まだ → 今日の復習に */
   function record(t, ok) {
+    schedule(t, ok);
     if (ok) { known[t.term] = 1; delete weak[t.term]; } else { delete known[t.term]; weak[t.term] = 1; }
     saveProgress();
   }
-  /* 一覧での印の付け外し: 復習リストには入れない */
+  /* 一覧での印の付け外し: 印を付けた用語は明日の復習に入れ、外したら予定も消す */
   function setKnown(t, v) {
-    if (v) { known[t.term] = 1; delete weak[t.term]; } else delete known[t.term];
+    if (v) {
+      known[t.term] = 1; delete weak[t.term];
+      if (!srs[t.term] || !srs[t.term].s) srs[t.term] = { s: 1, d: addDays(INTERVALS[0]) };
+    } else {
+      delete known[t.term];
+      if (!isWeak(t)) delete srs[t.term];
+    }
     saveProgress();
+  }
+
+  /* ---------- 日付での復習 ---------- */
+  const dayKey = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  const todayKey = () => dayKey(new Date());
+  function addDays(n) { const d = new Date(); d.setDate(d.getDate() + n); return dayKey(d); }
+  const shortDay = (k) => `${+k.slice(5, 7)}/${+k.slice(8, 10)}`;
+  const isDue = (t) => isWeak(t) || (!!srs[t.term] && srs[t.term].d <= todayKey());
+  /* 正解は復習の日が来ているときだけ間隔を進める（同じ日に何度も正解しても先へ延びすぎない） */
+  function schedule(t, ok) {
+    const today = todayKey(), e = srs[t.term];
+    if (!ok) { srs[t.term] = { s: 0, d: today }; return; }
+    if (e && e.d > today && !isWeak(t)) return;
+    const s = (e ? e.s : 0) + 1;
+    const base = INTERVALS[Math.min(s, INTERVALS.length) - 1];
+    /* 4日以上は前後1日ずらす（同じ日に復習が固まらないように） */
+    const days = base >= 4 ? base + Math.floor(Math.random() * 3) - 1 : base;
+    srs[t.term] = { s, d: addDays(days) };
+  }
+  /* はじめて開いたとき: 間違えた用語は今日に、覚えた用語は一度に出ないよう次の7日に分ける */
+  (function seedSrs() {
+    Object.keys(srs).forEach((k) => { const e = srs[k]; if (!e || !/^\d{4}-\d{2}-\d{2}$/.test(e.d) || !(e.s >= 0)) delete srs[k]; });
+    let n = 0;
+    TERMS.forEach((t) => {
+      if (srs[t.term]) return;
+      if (isWeak(t)) srs[t.term] = { s: 0, d: todayKey() };
+      else if (isKnown(t)) srs[t.term] = { s: 1, d: addDays((n++ % 7) + 1) };
+    });
+    store("boki-drill-srs", srs);
+  })();
+  function nextReview(t) {
+    const e = srs[t.term];
+    if (!e) return "";
+    const today = todayKey();
+    const text = e.d <= today ? "今日の復習に入りました" : `次の復習: ${e.d === addDays(1) ? "明日" : shortDay(e.d)}`;
+    return `<p class="next-review">${text}</p>`;
+  }
+  /* 今日の復習の数と、これからの7日の予定（過ぎた分は今日に数える） */
+  function renderRevPlan() {
+    const el = $("#revPlan");
+    if (!el) return;
+    if (!Object.keys(srs).length) { el.innerHTML = ""; el.hidden = true; return; }
+    const week = [];
+    for (let i = 0; i < 7; i++) { const k = addDays(i); week.push({ k, n: TERMS.filter((x) => { const e = srs[x.term]; return e && (i === 0 ? isDue(x) : e.d === k && !isWeak(x)); }).length }); }
+    el.hidden = false;
+    el.innerHTML = `
+      <button class="rev-now" type="button" id="goReview"><span>今日の復習</span><span><b class="mono">${week[0].n}</b> 語</span></button>
+      <ol class="rev-week" aria-label="これから7日の復習の数">${week.map((w, i) =>
+        `<li class="${w.n ? "on" : ""}"><small>${i ? shortDay(w.k) : "今日"}</small><b class="mono">${w.n}</b></li>`).join("")}</ol>`;
+    $("#goReview").onclick = () => { mode = "review"; refresh(); $("#study").scrollIntoView(); };
   }
 
   /* ---------- 文字列 ---------- */
@@ -74,8 +134,10 @@
   const reviewing = () => mode === "review";
   const kind = () => reviewing() ? prefs.reviewKind : mode;
   const basePool = () => field === "all" ? TERMS : TERMS.filter((t) => t.f === field);
-  const pool = () => reviewing() ? basePool().filter(isWeak) : basePool();
-  const studyOrder = (p) => [...shuffle(p.filter((t) => !isKnown(t))), ...shuffle(p.filter(isKnown))];
+  const pool = () => reviewing() ? basePool().filter(isDue) : basePool();
+  /* 今日の復習は、間違えた用語 → 復習の日が古い用語の順 */
+  const reviewOrder = (p) => shuffle(p).sort((a, b) => (isWeak(b) - isWeak(a)) || (srs[a.term] && srs[b.term] ? srs[a.term].d.localeCompare(srs[b.term].d) : 0));
+  const studyOrder = (p) => reviewing() ? reviewOrder(p) : [...shuffle(p.filter((t) => !isKnown(t))), ...shuffle(p.filter(isKnown))];
 
   /* ---------- サイドバー ---------- */
   function renderModes() {
@@ -88,9 +150,9 @@
   function updateWeakCount() {
     const el = $("#weakCount");
     if (!el) return;
-    const n = basePool().filter(isWeak).length;
+    const n = basePool().filter(isDue).length;
     el.textContent = n ? String(n) : "";
-    el.setAttribute("aria-label", `復習する用語 ${n}語`);
+    el.setAttribute("aria-label", `今日復習する用語 ${n}語`);
   }
   function renderFields() {
     const rows = [["all", "すべて", TERMS], ...Object.entries(FIELD).map(([k, v]) => [k, v, TERMS.filter((t) => t.f === k)])];
@@ -133,10 +195,12 @@
   }
   function renderReviewEmpty() {
     const scope = field === "all" ? "" : `${FIELD[field]}の`;
+    const later = basePool().map((t) => srs[t.term] && srs[t.term].d).filter(Boolean).sort();
+    const nextDay = later[0], nextN = later.filter((d) => d === nextDay).length;
     $("#panel").innerHTML = `
       <div class="result">
-        <div class="score" style="font-size:1.35rem;line-height:1.4">復習する${scope}用語はありません</div>
-        <p style="margin:0">カードで「まだ」を押した用語や、4択・書いて答えるで間違えた用語がここに集まります。<br>正解すると、復習リストから外れます。</p>
+        <div class="score" style="font-size:1.35rem;line-height:1.4">${nextDay ? `今日の${scope}復習は終わりました` : `復習する${scope}用語はありません`}</div>
+        <p style="margin:0">${nextDay ? `次の復習は <b>${nextDay === addDays(1) ? "明日" : shortDay(nextDay)}</b>（${nextN}語）です。` : "カードで「まだ」を押した用語や、4択・書いて答えるで答えた用語が、復習の日にここに出ます。"}</p>
         <div class="cta-row" style="justify-content:center">
           <button class="btn primary" type="button" data-go="quiz">4択クイズをする</button>
           <button class="btn" type="button" data-go="card">カードで覚える</button>
@@ -150,7 +214,7 @@
   function renderCard() {
     const t = deck[idx];
     if (!t) { $("#panel").innerHTML = `<div class="empty">用語がありません</div>`; return; }
-    const left = reviewing() ? `復習リスト 残り <span class="mono">${pool().length}</span>` : `まだ覚えていない用語 <span class="mono">${pool().filter((x) => !isKnown(x)).length}</span>`;
+    const left = reviewing() ? `今日の復習 残り <span class="mono">${pool().length}</span>` : `まだ覚えていない用語 <span class="mono">${pool().filter((x) => !isKnown(x)).length}</span>`;
     const rev = prefs.cardDir === "d2t";
     const full = t.abbr ? `<div class="hint" lang="en">${esc(t.abbr)}</div>` : "";
     let body;
@@ -175,7 +239,7 @@
     if (idx < deck.length) return renderCard();
     if (reviewing()) {
       const n = pool().length;
-      return renderRoundEnd("1周しました", n, "語が復習リストに残っています", "", ...reviewNext());
+      return renderRoundEnd("1周しました", n, "語が今日の復習に残っています", "", ...reviewNext());
     }
     renderRoundEnd("1周しました", pool().filter(isKnown).length, `/ ${pool().length} 覚えた`, "", "もう1周する", () => { newDeck(); renderCard(); });
   }
@@ -210,7 +274,7 @@
         const cls = done && c.id === q.t.id ? "correct" : done && k === q.picked ? "wrong" : "";
         return `<button class="choice ${cls}" type="button" data-k="${k}" ${done ? "disabled" : ""}><span class="oval">${KANA[k]}</span><span>${label(c)}</span></button>`;
       }).join("")}</div>
-      ${done ? `${explain}<button class="btn primary" type="button" id="next">${quiz.i + 1 < quiz.qs.length ? "次の問題" : "結果を見る"}</button>` : ""}
+      ${done ? `${explain}${nextReview(q.t)}<button class="btn primary" type="button" id="next">${quiz.i + 1 < quiz.qs.length ? "次の問題" : "結果を見る"}</button>` : ""}
       <div class="kbd">1〜4 で解答 / Enter で次へ</div>`;
     document.querySelectorAll(".choice").forEach((b) => b.onclick = () => pick(+b.dataset.k));
     if (done) { $("#next").onclick = () => { quiz.i++; renderQuiz(); }; $("#next").focus({ preventScroll: true }); }
@@ -256,6 +320,7 @@
           ${q.result === "ng" ? `<span class="yours">あなたの答え: ${esc(q.input)}</span>` : ""}
           <a href="${link(q.t)}">この用語の解説ページを見る</a>
         </div>
+        ${nextReview(q.t)}
         <button class="btn primary" type="button" id="next">${typing.i + 1 < typing.qs.length ? "次の問題" : "結果を見る"}</button>`;
     }
     $("#panel").innerHTML = `
@@ -300,7 +365,7 @@
     $("#list").innerHTML = rows.length ? rows.map((t) => `
       <div class="row">
         <button class="st" type="button" data-n="${t.n}" aria-pressed="${isKnown(t)}" aria-label="${esc(t.term)}を覚えたにする" title="覚えた"></button>
-        <div><h3><a href="${link(t)}">${esc(t.term)}</a>${isWeak(t) ? `<span class="weak-tag">復習</span>` : ""}<small>${FIELD[t.f]}・${esc(t.sub)}</small></h3><p>${esc(t.desc)}</p></div>
+        <div><h3><a href="${link(t)}">${esc(t.term)}</a>${isDue(t) ? `<span class="weak-tag">今日の復習</span>` : srs[t.term] ? `<span class="next-tag">次 ${shortDay(srs[t.term].d)}</span>` : ""}<small>${FIELD[t.f]}・${esc(t.sub)}</small></h3><p>${esc(t.desc)}</p></div>
       </div>`).join("") : `<div class="empty">「${esc(query)}」に当てはまる用語はありません</div>`;
     document.querySelectorAll(".st").forEach((b) => b.onclick = () => {
       const t = TERMS[+b.dataset.n]; setKnown(t, !isKnown(t)); renderRows();
@@ -336,8 +401,8 @@
   $("#reset").onclick = () => {
     const btn = $("#reset");
     if (!resetArmed) { resetArmed = true; btn.textContent = "もう一度押すとリセットします"; setTimeout(() => { resetArmed = false; btn.textContent = "進み具合をリセット"; }, 3000); return; }
-    known = {}; weak = {}; store("boki-drill-v1", known); store("boki-drill-weak", weak);
-    resetArmed = false; btn.textContent = "進み具合をリセット"; refresh();
+    known = {}; weak = {}; srs = {}; store("boki-drill-v1", known); store("boki-drill-weak", weak); store("boki-drill-srs", srs);
+    resetArmed = false; btn.textContent = "進み具合をリセット"; renderRevPlan(); refresh();
   };
 
   document.addEventListener("keydown", (e) => {
@@ -355,5 +420,6 @@
     }
   });
 
+  renderRevPlan();
   refresh();
 })();

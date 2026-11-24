@@ -247,6 +247,7 @@ def build_home():
   </div>
   <aside class="hero-progress" aria-labelledby="prog-h">
     <h2 id="prog-h">あなたの進み具合</h2>
+    <div class="rev-plan" id="revPlan" hidden></div>
     <p class="hero-progress-sub">分野を押すと、その分野だけで学習します</p>
     <div class="fields" id="fields"></div>
     <p class="save-note">進み具合はこのブラウザに保存されます。<button id="reset" type="button">リセット</button></p>
@@ -266,7 +267,7 @@ def build_home():
 
 <section class="features" aria-labelledby="feat-h">
   <h2 id="feat-h" class="sec-title">できること</h2>
-  <div class="feat-grid"><a class="feat" href="#study">{icon("cards")}<b>単語帳とクイズ</b><span>{len(terms)}語をカード・4択・書いて答えるで。間違えた用語だけを復習できます。</span><em>学習を始める →</em></a><a class="feat" href="test.html">{icon("target")}<b>ミニテスト</b><span>3級・2級の8つの分野から{n_test}問。分野ごとの正答率がわかる。</span><em>挑戦する →</em></a><a class="feat" href="kamoku.html">{icon("layers")}<b>勘定科目</b><span>資産・負債・純資産・収益・費用のどれ？{len(KAMOKU)}科目の分類クイズ。</span><em>覚える →</em></a><a class="feat" href="typing.html">{icon("keyboard")}<b>用語タイピング</b><span>用語と意味を打って、手で覚えます。制限時間は1分・2分・3分から。</span><em>タイピングする →</em></a><a class="feat" href="terms/index.html">{icon("list")}<b>用語一覧</b><span>分野・小分類ごとに全部の用語を一覧で。1語ずつ解説ページがあります。</span><em>一覧を見る →</em></a></div>
+  <div class="feat-grid"><a class="feat" href="#study">{icon("cards")}<b>単語帳とクイズ</b><span>{len(terms)}語をカード・4択・書いて答えるで。間違えた用語や忘れかけた用語を、日付で復習できます。</span><em>学習を始める →</em></a><a class="feat" href="test.html">{icon("target")}<b>ミニテスト</b><span>3級・2級の8つの分野から{n_test}問。分野ごとの正答率がわかる。</span><em>挑戦する →</em></a><a class="feat" href="kamoku.html">{icon("layers")}<b>勘定科目</b><span>資産・負債・純資産・収益・費用のどれ？{len(KAMOKU)}科目の分類クイズ。</span><em>覚える →</em></a><a class="feat" href="typing.html">{icon("keyboard")}<b>用語タイピング</b><span>用語と意味を打って、手で覚えます。制限時間は1分・2分・3分から。</span><em>タイピングする →</em></a><a class="feat" href="terms/index.html">{icon("list")}<b>用語一覧</b><span>分野・小分類ごとに全部の用語を一覧で。1語ずつ解説ページがあります。</span><em>一覧を見る →</em></a></div>
 </section>
 
 <section class="prose home-intro">
@@ -526,7 +527,7 @@ def build_test():
     <ul>
       <li>1回{n}問（{mix}）。</li>
       <li>説明文を読んで、当てはまる用語をア〜エから選びます。答えはすべて解き終わってから表示します。</li>
-      <li>間違えた用語は、ホームの「復習」に入ります。</li>
+      <li>間違えた用語は、ホームの「今日の復習」に入ります。</li>
     </ul>
     <p>本番の試験は60分で、仕訳の問題がたくさん出ます。仕訳では、取引に合う勘定科目を選べることが大切です。正答率の低い分野から重点的に復習しましょう。</p>
     <p class="muted">このミニテストは用語の確認のためのもので、本番の問題の形や採点の方法とは異なります。</p>

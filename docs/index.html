@@ -53,6 +53,7 @@
   </div>
   <aside class="hero-progress" aria-labelledby="prog-h">
     <h2 id="prog-h">あなたの進み具合</h2>
+    <div class="rev-plan" id="revPlan" hidden></div>
     <p class="hero-progress-sub">分野を押すと、その分野だけで学習します</p>
     <div class="fields" id="fields"></div>
     <p class="save-note">進み具合はこのブラウザに保存されます。<button id="reset" type="button">リセット</button></p>
@@ -72,7 +73,7 @@
 
 <section class="features" aria-labelledby="feat-h">
   <h2 id="feat-h" class="sec-title">できること</h2>
-  <div class="feat-grid"><a class="feat" href="#study"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="6" width="14" height="14" rx="2"/><path d="M7 2h12a2 2 0 0 1 2 2v12"/></svg><b>単語帳とクイズ</b><span>300語をカード・4択・書いて答えるで。間違えた用語だけを復習できます。</span><em>学習を始める →</em></a><a class="feat" href="test.html"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/></svg><b>ミニテスト</b><span>3級・2級の8つの分野から20問。分野ごとの正答率がわかる。</span><em>挑戦する →</em></a><a class="feat" href="kamoku.html"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 9 5-9 5-9-5z"/><path d="m3 13 9 5 9-5"/></svg><b>勘定科目</b><span>資産・負債・純資産・収益・費用のどれ？117科目の分類クイズ。</span><em>覚える →</em></a><a class="feat" href="typing.html"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M7 14h10"/></svg><b>用語タイピング</b><span>用語と意味を打って、手で覚えます。制限時間は1分・2分・3分から。</span><em>タイピングする →</em></a><a class="feat" href="terms/index.html"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg><b>用語一覧</b><span>分野・小分類ごとに全部の用語を一覧で。1語ずつ解説ページがあります。</span><em>一覧を見る →</em></a></div>
+  <div class="feat-grid"><a class="feat" href="#study"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="6" width="14" height="14" rx="2"/><path d="M7 2h12a2 2 0 0 1 2 2v12"/></svg><b>単語帳とクイズ</b><span>300語をカード・4択・書いて答えるで。間違えた用語や忘れかけた用語を、日付で復習できます。</span><em>学習を始める →</em></a><a class="feat" href="test.html"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/></svg><b>ミニテスト</b><span>3級・2級の8つの分野から20問。分野ごとの正答率がわかる。</span><em>挑戦する →</em></a><a class="feat" href="kamoku.html"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 9 5-9 5-9-5z"/><path d="m3 13 9 5 9-5"/></svg><b>勘定科目</b><span>資産・負債・純資産・収益・費用のどれ？117科目の分類クイズ。</span><em>覚える →</em></a><a class="feat" href="typing.html"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M7 14h10"/></svg><b>用語タイピング</b><span>用語と意味を打って、手で覚えます。制限時間は1分・2分・3分から。</span><em>タイピングする →</em></a><a class="feat" href="terms/index.html"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg><b>用語一覧</b><span>分野・小分類ごとに全部の用語を一覧で。1語ずつ解説ページがあります。</span><em>一覧を見る →</em></a></div>
 </section>
 
 <section class="prose home-intro">
